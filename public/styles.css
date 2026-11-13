@@ -55,6 +55,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 20px; }
 .progress div { height: 100%; width: 0; background: #2f7df6; transition: width .3s; }
 .note { color: #9aa3b2; font-size: 13px; }
 .links a { display: inline-block; margin: 4px 8px 4px 0; color: #7fb0ff; font-size: 13px; }
+.links { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.pack-btn { width: 100%; text-align: left; }
+.pack-btn.done { background: #1f8a4c; }
 .history { margin-top: 32px; }
 .history h3 { font-size: 15px; color: #c8cfdb; }
 .history-list { display: flex; gap: 8px; flex-wrap: wrap; }

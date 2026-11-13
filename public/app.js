@@ -195,14 +195,61 @@ async function downloadOriginal(photo) {
   downloadBlob(await res.blob(), filename);
 }
 
+async function downloadPack(b) {
+  const p = state.person;
+  const batches = Math.ceil(state.total / BATCH);
+  const start = b * BATCH;
+  const end = Math.min(start + BATCH, state.total);
+  const btn = $(`pack-btn-${b}`);
+  if (!p || !btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = `第 ${b + 1} 包打包中…`;
+  try {
+    const res = await fetch(
+      api(`/api/zip?celebrityId=${p.celebrityId}&start=${start}&count=${BATCH}&name=${encodeURIComponent(p.name)}`),
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `打包失败 ${res.status}`);
+    }
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    // Verify it really is a ZIP before saving it as one.
+    if (!(bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04)) {
+      throw new Error("服务器返回的不是有效 ZIP 文件");
+    }
+    const contentType = res.headers.get("Content-Type") || "";
+    if (!contentType.includes("application/zip")) {
+      throw new Error(`服务器返回类型不对：${contentType}`);
+    }
+    const filename = `${p.name}-照片-第${b + 1}包.zip`;
+    downloadBlob(new Blob([buf], { type: "application/zip" }), filename);
+    state.doneBatches.add(b);
+    btn.textContent = `第 ${b + 1} 包已下载 ✓（${start + 1}–${end} 张）`;
+    btn.classList.add("done");
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = `第 ${b + 1} 包失败，点我重试（${start + 1}–${end} 张）`;
+    $("download-note").textContent = `第 ${b + 1} 包失败：${e.message}，点上面按钮重试。`;
+  }
+  updateDownloadProgress();
+  if (state.doneBatches.size === batches) {
+    $("download-label").textContent = `全部完成：${state.total} 张，分 ${batches} 包。`;
+  }
+}
+
+function updateDownloadProgress() {
+  const batches = Math.ceil(state.total / BATCH);
+  $("download-count").textContent = `${state.doneBatches.size} / ${batches} 包完成`;
+  $("download-bar").style.width = `${(state.doneBatches.size / batches) * 100}%`;
+}
+
 async function downloadAll() {
   const p = state.person;
   if (!p || state.downloading) return;
   state.downloading = true;
   $("download-all").disabled = true;
   $("download-panel").classList.remove("hidden");
-  $("download-links").innerHTML = "";
-  $("download-resume").classList.add("hidden");
 
   // Make sure we know the total first.
   if (!state.total) {
@@ -210,71 +257,41 @@ async function downloadAll() {
       const data = await apiJson(`/api/photos?celebrityId=${p.celebrityId}&start=0&count=1`);
       state.total = data.total;
     } catch (e) {
-      failDownload(`取照片总数失败：${e.message}`);
+      $("download-label").textContent = "下载中断";
+      $("download-note").textContent = `取照片总数失败：${e.message}`;
+      state.downloading = false;
+      $("download-all").disabled = false;
       return;
     }
   }
 
   const batches = Math.ceil(state.total / BATCH);
-  let failedBatch = -1;
+  const list = $("download-links");
+  list.innerHTML = "";
   for (let b = 0; b < batches; b++) {
-    if (state.doneBatches.has(b)) continue;
     const start = b * BATCH;
-    $("download-label").textContent = `正在打包第 ${b + 1} / ${batches} 包（${start + 1}–${Math.min(start + BATCH, state.total)} 张）…`;
-    $("download-count").textContent = `${state.doneBatches.size} / ${batches} 包完成`;
-    $("download-bar").style.width = `${(state.doneBatches.size / batches) * 100}%`;
-    try {
-      const res = await fetch(
-        api(`/api/zip?celebrityId=${p.celebrityId}&start=${start}&count=${BATCH}&name=${encodeURIComponent(p.name)}`),
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `打包失败 ${res.status}`);
-      }
-      const buf = await res.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      // Verify it really is a ZIP before saving it as one.
-      if (!(bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04)) {
-        throw new Error("服务器返回的不是有效 ZIP 文件");
-      }
-      const contentType = res.headers.get("Content-Type") || "";
-      if (!contentType.includes("application/zip")) {
-        throw new Error(`服务器返回类型不对：${contentType}`);
-      }
-      const filename = `${p.name}-照片-第${b + 1}包.zip`;
-      const blob = new Blob([buf], { type: "application/zip" });
-      downloadBlob(blob, filename);
-      state.doneBatches.add(b);
-      const link = document.createElement("a");
-      link.textContent = filename;
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      $("download-links").appendChild(link);
-      $("download-bar").style.width = `${(state.doneBatches.size / batches) * 100}%`;
-      $("download-count").textContent = `${state.doneBatches.size} / ${batches} 包完成`;
-    } catch (e) {
-      failedBatch = b;
-      break;
+    const end = Math.min(start + BATCH, state.total);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = `pack-btn-${b}`;
+    btn.className = "pack-btn";
+    if (state.doneBatches.has(b)) {
+      btn.textContent = `第 ${b + 1} 包已下载 ✓（${start + 1}–${end} 张）`;
+      btn.disabled = true;
+      btn.classList.add("done");
+    } else {
+      btn.textContent = `下载第 ${b + 1} 包（${start + 1}–${end} 张）`;
     }
+    btn.onclick = () => downloadPack(b);
+    list.appendChild(btn);
   }
-
+  $("download-label").textContent = `共 ${batches} 包，点下面按钮逐包下载。`;
+  $("download-note").textContent = "手机浏览器一次只让下一个文件，所以第 1 包自动开始下载，其余的点一下按钮下载一包。";
+  updateDownloadProgress();
   state.downloading = false;
   $("download-all").disabled = false;
-  if (failedBatch >= 0) {
-    failDownload(`第 ${failedBatch + 1} 包失败：${state.doneBatches.size}/${batches} 包已完成。`);
-    $("download-resume").classList.remove("hidden");
-    $("download-resume").onclick = () => downloadAll();
-  } else {
-    $("download-label").textContent = `全部完成：${state.total} 张，分 ${batches} 包。`;
-    $("download-note").textContent = "如果某包没弹出下载，可点下面对应的链接重新下载。";
-  }
-}
-
-function failDownload(msg) {
-  $("download-label").textContent = "下载中断";
-  $("download-note").textContent = msg + " 请稍后重试，或从断点继续。";
-  state.downloading = false;
-  $("download-all").disabled = false;
+  // Pack 1 starts automatically: this tap is the user gesture for it.
+  if (!state.doneBatches.has(0)) downloadPack(0);
 }
 
 // ---------- history ----------
