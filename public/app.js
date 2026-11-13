@@ -53,7 +53,12 @@ function renderPerson() {
   const p = state.person;
   if (!p) return;
   $("person-card").classList.remove("hidden");
-  $("person-avatar").src = p.avatar || "";
+  // Avatar goes through the image proxy too: the raw avatar URL returns
+  // 418 with no Referer, so loading it directly breaks the avatar in
+  // browsers that send no Referer. The proxy sets the Douban Referer.
+  $("person-avatar").src = p.avatar
+    ? api("/api/image?url=" + encodeURIComponent(p.avatar))
+    : "";
   $("person-avatar").alt = p.name;
   $("person-name").textContent = p.name;
   $("person-meta").textContent = `共 ${state.total || p.photoTotal || "?"} 张 · 已显示 ${state.photos.length} 张`;
