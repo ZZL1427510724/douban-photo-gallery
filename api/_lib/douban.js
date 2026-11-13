@@ -46,8 +46,14 @@ async function getJson(url) {
 
 /** Parse a pasted Douban personage/celebrity link or a plain ID. */
 export function parseInput(input) {
-  const s = String(input || "").trim();
+  let s = String(input || "").trim();
   if (!s) throw new Error("请输入豆瓣人物链接或 ID");
+  // Douban App share links are dispatch URLs with the real link URL-encoded
+  // in the uri/fallback params (e.g. %2Fsubject%2F27502918). Decode first so
+  // the patterns below can match; tolerate malformed % sequences.
+  try {
+    s = decodeURIComponent(s);
+  } catch { /* keep the raw input */ }
   const personage = s.match(/personage\/(\d+)/);
   if (personage) return { kind: "personage", id: personage[1] };
   const celebrity = s.match(/celebrity\/(\d+)/);
