@@ -9,7 +9,7 @@ const savedApi = localStorage.getItem("douban-worker-url") || "";
 if (params.get("api")) localStorage.setItem("douban-worker-url", params.get("api"));
 const API_BASE = (window.DOUBAN_WORKER_URL || localStorage.getItem("douban-worker-url") || "").replace(/\/$/, "");
 
-const BATCH = 30; // ZIP batch size — matches the server's 30-per-ZIP limit
+const BATCH = 50; // ZIP batch size — matches the server's 50-per-ZIP limit
 const DEFAULT_PERSON = { name: "李妍锡", celebrityId: "1427992", personageId: "34914546" };
 
 const $ = (id) => document.getElementById(id);

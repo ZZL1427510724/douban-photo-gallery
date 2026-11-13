@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   try {
     const celebrityId = req.query.celebrityId;
     const start = Math.max(0, parseInt(req.query.start || "0", 10) || 0);
-    const count = Math.min(30, Math.max(1, parseInt(req.query.count || "30", 10) || 30));
+    const count = Math.min(50, Math.max(1, parseInt(req.query.count || "50", 10) || 50));
     const name = (req.query.name || "豆瓣照片").trim() || "豆瓣照片";
     if (!celebrityId) return res.status(400).json({ ok: false, error: "缺少 celebrityId" });
 
@@ -16,8 +16,8 @@ export default async function handler(req, res) {
 
     const entries = [];
     const skipped = [];
-    for (let i = 0; i < photos.length; i += 5) {
-      const chunk = photos.slice(i, i + 5);
+    for (let i = 0; i < photos.length; i += 10) {
+      const chunk = photos.slice(i, i + 10);
       const results = await Promise.all(
         chunk.map(async (photo, j) => {
           try {
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "生成的不是有效 ZIP，已拒绝返回" });
     }
 
-    const batch = Math.floor(start / 30) + 1;
+    const batch = Math.floor(start / count) + 1;
     const filename = `${name}-照片-第${batch}包.zip`;
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
