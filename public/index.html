@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>豆瓣人物图片</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>豆瓣人物图片</h1>
+    <p>粘贴任何豆瓣人物链接，爬取全部公开照片</p>
+  </div>
+  <form id="search-form" class="search">
+    <input id="search-input" type="text" placeholder="粘贴豆瓣人物链接 / celebrity 链接 / 纯数字 ID，例如 https://www.douban.com/personage/34914546/photos/" autocomplete="off">
+    <button type="submit">爬取</button>
+  </form>
+</header>
+
+<main>
+  <section id="person-card" class="person hidden">
+    <img id="person-avatar" class="avatar" alt="">
+    <div class="person-info">
+      <h2 id="person-name"></h2>
+      <p id="person-meta"></p>
+      <a id="person-link" href="#" target="_blank" rel="noopener">在豆瓣打开 →</a>
+    </div>
+    <div class="actions">
+      <button id="download-all" type="button">下载全部原图</button>
+      <button id="refresh-person" type="button" class="ghost">刷新资料</button>
+    </div>
+  </section>
+
+  <div id="download-panel" class="download hidden">
+    <div class="progress-row">
+      <span id="download-label">准备打包…</span>
+      <span id="download-count"></span>
+    </div>
+    <div class="progress"><div id="download-bar"></div></div>
+    <p id="download-note" class="note"></p>
+    <div id="download-links" class="links"></div>
+    <button id="download-resume" type="button" class="ghost hidden">从断点继续</button>
+  </div>
+
+  <p id="status" class="status"></p>
+  <div id="gallery" class="gallery"></div>
+  <p id="more-wrap" class="more-wrap hidden">
+    <button id="load-more" type="button">加载更多</button>
+  </p>
+
+  <section class="history">
+    <h3>爬过的历史</h3>
+    <div id="history-list" class="history-list"></div>
+  </section>
+</main>
+
+<div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
+  <button id="lightbox-close" class="lb-close" type="button" aria-label="关闭">×</button>
+  <button id="lightbox-prev" class="lb-nav prev" type="button" aria-label="上一张">‹</button>
+  <img id="lightbox-img" alt="">
+  <button id="lightbox-next" class="lb-nav next" type="button" aria-label="下一张">›</button>
+  <div class="lb-info">
+    <p id="lightbox-caption"></p>
+    <p id="lightbox-meta"></p>
+    <button id="lightbox-download" type="button">保存原图</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
